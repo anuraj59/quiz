@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kerala Meme Quiz</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b1020; --panel:#151e32; --panel2:#202c44; --text:#f8fafc; --muted:#a9b7ce; --yellow:#facc15; --blue:#60a5fa; --green:#22c55e; --red:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:22px; background:radial-gradient(circle at top,#1c2b49 0,#0b1020 55%); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .app { width:min(760px,100%); }
+  .top { text-align:center; margin-bottom:18px; }
+  .logo { font-size:clamp(1.6rem,5vw,2.4rem); font-weight:900; letter-spacing:.04em; color:var(--yellow); margin:0 0 8px; }
+  .subtitle { margin:0; color:var(--muted); }
+  .panel { background:rgba(21,30,50,.96); border:1px solid #2b3954; border-radius:24px; padding:clamp(18px,4vw,30px); box-shadow:0 22px 60px #0005; }
+  .stats { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .pill { background:#263550; border:1px solid #354765; padding:9px 13px; border-radius:999px; font-size:.9rem; color:#e2e8f0; }
+  .progress-track { width:100%; height:8px; background:#303d55; border-radius:99px; overflow:hidden; margin:12px 0 24px; }
+  .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#a78bfa); transition:width .25s ease; }
+  .category { display:inline-flex; align-items:center; gap:7px; font-weight:800; font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; padding:7px 11px; border-radius:999px; background:#392f16; color:#fde68a; margin-bottom:14px; }
+  .category.gk { background:#172f50; color:#bfdbfe; }
+  h2 { font-size:clamp(1.25rem,3.5vw,1.7rem); line-height:1.4; margin:0 0 22px; }
+  .answers { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .answer { text-align:left; color:var(--text); background:var(--panel2); border:1px solid #3a4964; border-radius:14px; padding:15px; font-size:1rem; min-height:62px; cursor:pointer; transition:transform .12s,border-color .12s,background .12s; }
+  .answer:hover:not(:disabled) { transform:translateY(-2px); border-color:var(--blue); background:#293a58; }
+  .answer:focus-visible,button:focus-visible { outline:3px solid var(--yellow); outline-offset:3px; }
+  .answer:disabled { cursor:default; opacity:1; }
+  .answer.correct { background:#14532d; border-color:#22c55e; }
+  .answer.wrong { background:#7f1d1d; border-color:#f87171; }
+  .feedback { min-height:30px; margin:18px 0 8px; font-weight:750; text-align:center; }
+  .feedback.good { color:#86efac; } .feedback.bad { color:#fca5a5; }
+  .actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:12px; }
+  .btn { border:0; border-radius:12px; padding:12px 20px; font-weight:800; font-size:.95rem; cursor:pointer; }
+  .btn-primary { background:#2563eb; color:white; } .btn-primary:hover:not(:disabled) { background:#1d4ed8; }
+  .btn-secondary { background:#087f5b; color:white; } .btn-secondary:hover { background:#066849; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .footer { text-align:center; color:#8190a9; font-size:.8rem; margin-top:14px; }
+  .result { text-align:center; padding:20px 0; }
+  .result-emoji { font-size:4rem; }
+  .result h2 { font-size:2rem; margin:10px 0; }
+  .result p { color:var(--muted); line-height:1.6; }
+  @media(max-width:560px) { body{padding:12px;} .panel{border-radius:18px;padding:17px;} .answers{grid-template-columns:1fr;} .answer{min-height:54px;} .pill{font-size:.8rem;} }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <p class="logo">🔥 KERALA MEME QUIZ 😂</p>
+    <p class="subtitle">Movie memes, internet culture and a little GK!</p>
+  </header>
+  <section class="panel" aria-live="polite">
+    <div class="stats">
+      <span class="pill" id="score">🏆 Score: 0 / 30</span>
+      <span class="pill" id="counter">Question 1 / 50</span>
+      <span class="pill" id="ratio">😂 4 Funny : 1 GK 🧠</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+    <div id="quiz">
+      <div class="category" id="category">😂 Funny question</div>
+      <h2 id="question">Loading question…</h2>
+      <div class="answers" id="answers"></div>
+      <div class="feedback" id="feedback">Choose your answer!</div>
+      <div class="actions">
+        <button class="btn btn-primary" id="next" disabled>Next question →</button>
+        <button class="btn btn-secondary" id="restart">↻ Restart quiz</button>
+      </div>
+    </div>
+    <div class="result" id="result" hidden></div>
+  </section>
+  <p class="footer">A fan-made quiz for fun. Celebrity references are jokes and opinions, not factual allegations.</p>
+</main>
+<script>
+const gkQuestions = [
+  {q:"What is the capital of Kerala?",a:"Thiruvananthapuram",o:["Kochi","Kollam","Kozhikode"]},
+  {q:"Which is the largest planet in our solar system?",a:"Jupiter",o:["Mars","Earth","Venus"]},
+  {q:"What is India's national animal?",a:"Bengal tiger",o:["Lion","Elephant","Leopard"]},
+  {q:"Which planet is called the Red Planet?",a:"Mars",o:["Venus","Saturn","Mercury"]},
+  {q:"What is the currency of Japan?",a:"Yen",o:["Won","Dollar","Rupee"]},
+  {q:"How many days are in a leap year?",a:"366",o:["365","364","360"]},
+  {q:"Which is the largest ocean?",a:"Pacific Ocean",o:["Indian Ocean","Atlantic Ocean","Arctic Ocean"]},
+  {q:"Which gas do plants absorb during photosynthesis?",a:"Carbon dioxide",o:["Oxygen","Hydrogen","Helium"]},
+  {q:"What is the capital of India?",a:"New Delhi",o:["Mumbai","Chennai","Kolkata"]},
+  {q:"How many colours are traditionally listed in a rainbow?",a:"7",o:["5","6","8"]}
+];
+const funnyQuestions = [
+  {q:"Who is popularly known as 'Aarattu Annan' online?",a:"Santhosh Varkey",o:["Mohanlal","Mammootty","Prithviraj"]},
+  {q:"What is a movie fan likely to do after watching a trailer 20 times?",a:"Watch it one more time",o:["Forget movies exist","Become an astronaut","Write an exam"]},
+  {q:"Two fans argue about their favourite Malayalam stars. What happens?",a:"A long comment-section debate",o:["A space launch","A cooking exam","A silent disco"]},
+  {q:"Alin Jose Perera is known to many viewers through what?",a:"Online videos and internet discussions",o:["Professional cricket","Space research","Olympic swimming"]},
+  {q:"A reviewer calls a film a masterpiece. What should you do?",a:"Watch it and decide yourself",o:["Give them an award immediately","Sell your TV","Cancel tomorrow"]},
+  {q:"A celebrity posts 'Big news tomorrow!' What do fans do?",a:"Start guessing in the comments",o:["Stop using phones forever","Open a railway station","Measure the moon"]},
+  {q:"What is the most dangerous sentence after a thriller?",a:"'Bro, let me explain the ending!'",o:["'Want some water?'","'It's raining'","'Your shoe is untied'"]},
+  {q:"A hero has a 10-minute slow-motion entry. What might a meme say?",a:"Even the deadline is waiting",o:["The scene needs a passport","The camera needs lunch","The theatre became a library"]},
+  {q:"What does a fan do when their favourite star has a cameo?",a:"Gets excited and tells everyone",o:["Starts a maths exam","Checks the washing machine","Calls a weather station"]},
+  {q:"What is the unofficial job of a friend who watches every new film?",a:"Spoiler-warning officer",o:["Airport pilot","Cloud accountant","Moon cleaner"]},
+  {q:"A trailer has one mysterious frame. Fans become…",a:"Full-time detectives",o:["Part-time astronauts","Vegetable inspectors","Train conductors"]},
+  {q:"What is the quickest way to start a movie debate?",a:"Ask who the best actor is",o:["Ask the time","Offer a banana","Discuss the weather"]},
+  {q:"The interval scene is amazing. What does the audience expect?",a:"An even better second half",o:["Surprise homework","A bus timetable","A cooking tutorial"]},
+  {q:"Someone types 'overrated' under a star's post. What happens?",a:"The comments get busy",o:["The internet goes on holiday","A spaceship lands","The phone grows legs"]},
+  {q:"A fan watches a film just for one actor. They are there for…",a:"That actor's scenes",o:["The fire extinguisher","The cinema carpet","The ticket printer"]},
+  {q:"What does 'mass entry' usually mean in a movie?",a:"A dramatic hero introduction",o:["A school lunch queue","A maths competition","A train delay"]},
+  {q:"A film song gets stuck in your head. What do you do?",a:"Hum it all day",o:["Apply for a driving licence","Count ceiling tiles","Learn underwater gardening"]},
+  {q:"What is a movie-review comment section sometimes like?",a:"A debate tournament with emojis",o:["A quiet monastery","A space station","An empty bank"]},
+  {q:"Your friend says a film is 'must watch'. Remember…",a:"Taste in films is personal",o:["They control the cinema","The film is a law","You must watch it 10 times"]},
+  {q:"What does a fan do when a release date is announced?",a:"Starts counting down",o:["Checks the moon's password","Buys a submarine","Measures a coconut"]},
+  {q:"A hero gives a long speech in the rain. Meme caption?",a:"Even the weather got a role",o:["Where is the bus stop?","Submit your homework","Wi-Fi password changed"]},
+  {q:"A favourite film gets re-released. What does a fan do?",a:"Looks for a theatre show",o:["Books a dentist appointment","Orders a washing machine","Checks flight school"]},
+  {q:"A movie has a plot twist nobody expected. The audience says…",a:"'Wait, WHAT?!'",o:["Solve this equation","Where is my umbrella?","Time to clean the fridge"]},
+  {q:"Why do people make funny edits of movie scenes?",a:"For humour and entertainment",o:["To repair the cinema roof","To calculate rainfall","To train dolphins"]},
+  {q:"A fan edits 50 clips of their favourite star. Their phone says…",a:"'Please, I need space!'",o:["Let's buy a tractor","I am a microwave","Teach me French"]},
+  {q:"What do people do after a confusing movie ending?",a:"Search for explanations",o:["Search for a new planet","Order 200 pencils","Call an electricity pole"]},
+  {q:"A trailer says 'the biggest cinematic experience'. Fans ask…",a:"How big is the popcorn?",o:["Can it fix my Wi-Fi?","Is there an exam?","Does it come with a bicycle?"]},
+  {q:"When a film becomes a meme…",a:"The meme may outlive the scene",o:["The screen turns into a window","Actors become traffic lights","The cinema starts farming"]},
+  {q:"Your friend says a movie changed their life. Reply…",a:"Did it at least change your password?",o:["Please water the laptop","Can it wash my bike?","What is your shoe size?"]},
+  {q:"What is the superpower of online critics?",a:"Typing very confidently",o:["Flying to Mars","Turning water into petrol","Stopping the rain"]},
+  {q:"When a star's new hairstyle appears online, fans discuss…",a:"The hairstyle and styling",o:["Potato prices only","The moon's orbit only","Railway platforms"]},
+  {q:"A favourite actor says 'Coming soon!' What does a fan do?",a:"Wait and keep checking updates",o:["Retire from the internet","Buy a lighthouse","Start a submarine company"]},
+  {q:"The first half is weak. What does the audience hope?",a:"Second half, please save us!",o:["Give us a maths test","Make it about socks","Inspect the roof"]},
+  {q:"The background music is louder than the dialogue. Meme caption?",a:"The BGM understood the assignment",o:["The sofa is hungry","The moon is late","My kettle is online"]},
+  {q:"Your friend explains a two-hour film for 40 minutes. You think…",a:"We watched different movies",o:["Let's calculate gravity","Where is the airport?","This is a recipe book"]},
+  {q:"What do some people check after a film ends?",a:"The post-credit scene",o:["Fridge temperature","Their shoe brand","Weather in Antarctica"]},
+  {q:"A film title is longer than the plot summary. Meme caption?",a:"The title needs its own interval",o:["The title is a vegetable","The projector is a lawyer","The screen is on leave"]},
+  {q:"Fans compare box-office numbers online. The comments become…",a:"A spreadsheet battle",o:["A yoga class","A flower show","A cooking contest"]},
+  {q:"What should a spoiler-free review do?",a:"Share opinions without revealing key plot details",o:["Tell the whole ending","Reveal every twist","Share private messages"]},
+  {q:"A hero walks in slow motion while everyone waits. Meme caption?",a:"Even the deadline is waiting",o:["The rice is ready","The Wi-Fi has a passport","The bus is doing homework"]}
+];
+
+const $ = id => document.getElementById(id);
+let questions = [], index = 0, score = 0, answered = false, currentOptions = [], correctAnswer = "";
+
+function shuffle(list) {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function buildQuestions() {
+  const fun = shuffle(funnyQuestions).slice(0, 40).map(q => ({...q, category:"FUNNY 😂"}));
+  const knowledge = shuffle(gkQuestions).map(q => ({...q, category:"GK 🧠"}));
+  const list = [];
+  for (let i = 0; i < 10; i++) {
+    list.push(...fun.slice(i * 4, i * 4 + 4));
+    list.push(knowledge[i]);
+  }
+  return list;
+}
+function startGame() {
+  score = 0; index = 0; answered = false;
+  questions = buildQuestions();
+  $('quiz').hidden = false;
+  $('result').hidden = true;
+  $('next').textContent = 'Next question →';
+  showQuestion();
+}
+function showQuestion() {
+  if (score >= 30) return finishGame(true);
+  if (index >= questions.length) return finishGame(false);
+  answered = false;
+  const item = questions[index];
+  correctAnswer = item.a;
+  currentOptions = shuffle([item.a, ...item.o]);
+  $('category').textContent = item.category;
+  $('category').className = 'category' + (item.category.startsWith('GK') ? ' gk' : '');
+  $('question').textContent = item.q;
+  $('score').textContent = `🏆 Score: ${score} / 30`;
+  $('counter').textContent = `Question ${index + 1} / ${questions.length}`;
+  $('progress').style.width = `${(index / questions.length) * 100}%`;
+  $('feedback').textContent = 'Choose your answer!';
+  $('feedback').className = 'feedback';
+  $('next').disabled = true;
+  const container = $('answers');
+  container.innerHTML = '';
+  currentOptions.forEach((option, i) => {
+    const button = document.createElement('button');
+    button.className = 'answer';
+    button.textContent = `${String.fromCharCode(65 + i)}. ${option}`;
+    button.addEventListener('click', () => chooseAnswer(button, option));
+    container.appendChild(button);
+  });
+}
+function chooseAnswer(button, option) {
+  if (answered) return;
+  answered = true;
+  const buttons = [...$('answers').querySelectorAll('button')];
+  buttons.forEach(b => b.disabled = true);
+  if (option === correctAnswer) {
+    score++;
+    button.classList.add('correct');
+    $('feedback').textContent = '✅ Correct! Nice one!';
+    $('feedback').className = 'feedback good';
+  } else {
+    button.classList.add('wrong');
+    buttons.find(b => b.textContent.slice(3) === correctAnswer)?.classList.add('correct');
+    $('feedback').textContent = `❌ Correct answer: ${correctAnswer}`;
+    $('feedback').className = 'feedback bad';
+  }
+  $('score').textContent = `🏆 Score: ${score} / 30`;
+  $('next').disabled = false;
+  $('next').textContent = score >= 30 ? 'See results 🏆' : 'Next question →';
+}
+function nextQuestion() {
+  if (!answered) return;
+  if (score >= 30) return finishGame(true);
+  index++;
+  showQuestion();
+}
+function finishGame(won) {
+  $('quiz').hidden = true;
+  $('result').hidden = false;
+  $('progress').style.width = won ? '100%' : `${(index / questions.length) * 100}%`;
+  $('counter').textContent = 'Quiz finished';
+  $('score').textContent = `🏆 Score: ${score} / 30`;
+  $('result').innerHTML = won
+    ? `<div class="result-emoji">🏆🎉</div><h2>You win!</h2><p>You got 30 correct answers and became the Meme Quiz Champion!</p><button class="btn btn-secondary" id="playAgain">↻ Play again</button>`
+    : `<div class="result-emoji">😂</div><h2>Quiz finished!</h2><p>Your final score is <strong>${score}</strong>.<br>Try again and see if you can reach 30 correct answers!</p><button class="btn btn-secondary" id="playAgain">↻ Play again</button>`;
+  $('playAgain').addEventListener('click', startGame);
+}
+$('next').addEventListener('click', nextQuestion);
+$('restart').addEventListener('click', startGame);
+startGame();
+</script>
+</body>
+</html>
